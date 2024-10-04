@@ -1,4 +1,4 @@
-package com.trackula.track;
+package com.trackula.repository;
 
 import com.trackula.model.TimerEntry;
 import org.springframework.data.repository.CrudRepository;
