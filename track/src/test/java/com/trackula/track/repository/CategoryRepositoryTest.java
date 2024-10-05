@@ -1,4 +1,4 @@
-package com.trackula.repository;
+package com.trackula.track.repository;
 
 import com.trackula.track.TrackApplication;
 import com.trackula.track.model.Category;
