@@ -25,4 +25,20 @@ public class TimerEntryCategoryRepositoryTest {
         Optional<TimerEntryCategory> timerEntryCategoryOptional = timerEntryCategoryRepository.findById(0L);
         assertThat(timerEntryCategoryOptional.isPresent()).isTrue();
     }
+
+    @Test
+    void ensureDeleteByCategoryIdWorksWithValidId() {
+        boolean isExceptionThrown = false;
+        String exMessage = "failed";
+        try {
+            timerEntryCategoryRepository.deleteByCategoryId(0L);
+        } catch(Exception e) {
+            exMessage = e.getMessage();
+            isExceptionThrown = true;
+        }
+
+        assertThat(isExceptionThrown)
+                .withFailMessage(exMessage)
+                .isFalse();
+    }
 }
