@@ -1,18 +1,17 @@
 package com.trackula.repository;
 
-import com.trackula.model.Category;
 import com.trackula.track.TrackApplication;
+import com.trackula.track.model.Category;
+import com.trackula.track.repository.CategoryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(classes=TrackApplication.class)
-@EnableAutoConfiguration
+@SpringBootTest(classes= TrackApplication.class)
 public class CategoryRepositoryTest {
     @Autowired
     CategoryRepository categoryRepo;
