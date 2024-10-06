@@ -9,4 +9,8 @@ public interface TimerEntryCategoryRepository extends CrudRepository<TimerEntryC
     @Query("DELETE FROM timer_entry_category WHERE category_id = :categoryId")
     @Modifying
     void deleteByCategoryId(Long categoryId);
+
+    @Query("DELETE FROM timer_entry_category WHERE timer_entry_id = :timerEntryId")
+    @Modifying
+    void deleteByTimerEntryId(Long timerEntryId);
 }

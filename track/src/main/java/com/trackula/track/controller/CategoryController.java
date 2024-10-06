@@ -5,9 +5,12 @@ import com.trackula.track.repository.CategoryRepository;
 import com.trackula.track.repository.TimerEntryCategoryRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
@@ -25,7 +28,7 @@ public class CategoryController {
 
     // TODO Pagification
     @GetMapping
-    public ResponseEntity<List<Category>> getCategories() {
+    public ResponseEntity<List<Category>> getCategories(Principal principal) {
         Iterable<Category> categoryIterator = categoryRepository.findAll();
         List<Category> categories = StreamSupport.stream(categoryIterator.spliterator(), false)
                 .toList();
@@ -33,15 +36,17 @@ public class CategoryController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Category> getCategory(@PathVariable Long id) {
-        Optional<Category> categoryOptional = categoryRepository.findById(id);
-        if(categoryOptional.isEmpty()) {
+    public ResponseEntity<Category> getCategoryById(@PathVariable Long id) {
+        Optional<Category> categoryOptional;
+        categoryOptional = categoryRepository.findById(id);
+        if (categoryOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         Category category = categoryOptional.get();
         return ResponseEntity.ok(category);
     }
 
+    @PreAuthorize("hasRole('ROLE_admin')")
     @PostMapping
     public ResponseEntity<Void> createCategory(@RequestBody Category category) {
         if(category.id() != null) {
@@ -54,12 +59,12 @@ public class CategoryController {
         if(isInDatabaseAlready) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
-        categoryRepository.save(category);
-        Category newCategory = categoryRepository.findByName(category.name());
+        Category newCategory = categoryRepository.save(category);
         URI uri = URI.create("/category/" + newCategory.id());
         return ResponseEntity.created(uri).build();
     }
 
+    @PreAuthorize("hasRole('ROLE_admin')")
     @PutMapping("/{id}")
     public ResponseEntity<Void> updateCategory(@PathVariable Long id, @RequestBody Category category) {
         Optional<Category> existingCategoryOptional = categoryRepository.findById(id);
@@ -79,13 +84,15 @@ public class CategoryController {
         }
         Category newCategory = new Category(
                 id,
-                category.name()
+                category.name(),
+                "admin"
         );
         categoryRepository.save(newCategory);
         return ResponseEntity.noContent().build();
     }
 
-    // TODO Make this transactional
+    @Transactional
+    @PreAuthorize("hasRole('ROLE_admin')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
         boolean isInDatabase = categoryRepository.existsById(id);

@@ -2,5 +2,5 @@ package com.trackula.track.model;
 
 import org.springframework.data.annotation.Id;
 
-public record TimerEntry(@Id Long id) {
+public record TimerEntry(@Id Long id, String owner, Long timeTracked) {
 }
