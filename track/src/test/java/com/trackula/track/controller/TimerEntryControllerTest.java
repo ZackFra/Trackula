@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.test.annotation.DirtiesContext;
 
 import java.net.URI;
 import java.util.List;
@@ -101,6 +102,7 @@ public class TimerEntryControllerTest {
     }
 
     @Test
+    @DirtiesContext
     void ensureUserCanCreateTimerEntry() throws Exception {
         TimerEntry timerEntry = new TimerEntry(
                 null,
@@ -110,10 +112,34 @@ public class TimerEntryControllerTest {
         HttpEntity<TimerEntry> request = new HttpEntity<>(timerEntry);
         ResponseEntity<Void> response = restTemplateWithBasicAuthForUser(restTemplate)
                 .postForEntity("/timer-entry", request, Void.class);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         URI location = response.getHeaders().getLocation();
         assertThat(location).isNotNull();
         ResponseEntity<String> getResponse = restTemplateWithBasicAuthForUser(restTemplate)
+                .getForEntity(location.getPath(), String.class);
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        TimerEntry newTimerEntry = objectMapper.readValue(
+                getResponse.getBody(),
+                TimerEntry.class
+        );
+        assertThat(newTimerEntry.id()).isNotNull();
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureAdminCanCreateTimerEntry() throws Exception {
+        TimerEntry timerEntry = new TimerEntry(
+                null,
+                null,
+                3600L
+        );
+        HttpEntity<TimerEntry> request = new HttpEntity<>(timerEntry);
+        ResponseEntity<Void> response = restTemplateWithBasicAuthForAdmin(restTemplate)
+                .postForEntity("/timer-entry", request, Void.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        URI location = response.getHeaders().getLocation();
+        assertThat(location).isNotNull();
+        ResponseEntity<String> getResponse = restTemplateWithBasicAuthForAdmin(restTemplate)
                 .getForEntity(location.getPath(), String.class);
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         TimerEntry newTimerEntry = objectMapper.readValue(

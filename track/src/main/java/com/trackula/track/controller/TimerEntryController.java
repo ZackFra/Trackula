@@ -57,9 +57,6 @@ public class TimerEntryController {
 
     @PostMapping
     public ResponseEntity<Void> createTimerEntry(@RequestBody TimerEntry timerEntry, Principal principal) {
-        if(timerEntry == null) {
-            return ResponseEntity.badRequest().build();
-        }
         if(timerEntry.id() != null) {
             return ResponseEntity.badRequest().build();
         }
@@ -81,8 +78,10 @@ public class TimerEntryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateTimerEntry(@PathVariable Long id, @RequestBody TimerEntry timerEntry, Principal principal) {
-        if((timerEntry == null) || timerEntry.id() != null && !id.equals(timerEntry.id())) {
+    public ResponseEntity<Void> updateTimerEntry(@PathVariable Long id,
+                                                 @RequestBody
+                                                 TimerEntry timerEntry, Principal principal) {
+        if(timerEntry.id() != null && !id.equals(timerEntry.id())) {
             return ResponseEntity.badRequest().build();
         }
         Optional<TimerEntry> existingTimerEntryOptional = timerEntryRepository.findByIdAndOwner(id, principal.getName());
