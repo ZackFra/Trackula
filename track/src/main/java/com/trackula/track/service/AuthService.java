@@ -9,7 +9,7 @@ public class AuthService {
     public boolean isAdmin() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return (
-                auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("admin"))
+                auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_admin"))
         );
     }
 }

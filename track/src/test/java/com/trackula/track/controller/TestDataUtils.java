@@ -17,6 +17,9 @@ public class TestDataUtils {
     final static String TEST_USER_USERNAME = "test-user";
     final static String TEST_USER_PASSWORD = "user-password";
 
+    final static Long ADMIN_TIMER_ENTRY_ID = 0L;
+    final static Long USER_TIMER_ENTRY_ID = 1L;
+
     @Transactional
     public static void makeControllerData(
             JdbcTemplate jdbcTemplate,
