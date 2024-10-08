@@ -44,18 +44,12 @@ public class TimerEntryController {
     public ResponseEntity<TimerEntry> getTimerEntryById(@PathVariable Long id, Principal principal) {
         Optional<TimerEntry> timerEntryOptional;
         if(authService.isAdmin()) {
-            if(!timerEntryRepository.existsById(id)) {
-                return ResponseEntity.notFound().build();
-            }
             timerEntryOptional = timerEntryRepository.findById(id);
         } else {
-            if(!timerEntryRepository.existsByIdAndOwner(id, principal.getName())) {
-                return ResponseEntity.notFound().build();
-            }
             timerEntryOptional = timerEntryRepository.findByIdAndOwner(id, principal.getName());
         }
         if(timerEntryOptional.isEmpty()) {
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.notFound().build();
         }
         TimerEntry timerEntry = timerEntryOptional.get();
         return ResponseEntity.ok(timerEntry);
@@ -63,6 +57,9 @@ public class TimerEntryController {
 
     @PostMapping
     public ResponseEntity<Void> createTimerEntry(@RequestBody TimerEntry timerEntry, Principal principal) {
+        if(timerEntry == null) {
+            return ResponseEntity.badRequest().build();
+        }
         if(timerEntry.id() != null) {
             return ResponseEntity.badRequest().build();
         }
@@ -85,7 +82,7 @@ public class TimerEntryController {
 
     @PutMapping("/{id}")
     public ResponseEntity<Void> updateTimerEntry(@PathVariable Long id, @RequestBody TimerEntry timerEntry, Principal principal) {
-        if(timerEntry.id() != null && !id.equals(timerEntry.id())) {
+        if((timerEntry == null) || timerEntry.id() != null && !id.equals(timerEntry.id())) {
             return ResponseEntity.badRequest().build();
         }
         Optional<TimerEntry> existingTimerEntryOptional = timerEntryRepository.findByIdAndOwner(id, principal.getName());
@@ -109,18 +106,17 @@ public class TimerEntryController {
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<Void> deleteTimerEntry(@PathVariable Long id, Principal principal) {
-        Optional<TimerEntry> timerEntryOptional;
+        boolean isInDatabase;
         if(authService.isAdmin()) {
-            timerEntryOptional = timerEntryRepository.findById(id);
+            isInDatabase = timerEntryRepository.existsById(id);
         } else {
-            timerEntryOptional = timerEntryRepository.findByIdAndOwner(id, principal.getName());
+            isInDatabase = timerEntryRepository.existsByIdAndOwner(id, principal.getName());
         }
-        if(timerEntryOptional.isEmpty()) {
+        if(!isInDatabase) {
             return ResponseEntity.notFound().build();
         }
-        TimerEntry timerEntry = timerEntryOptional.get();
         timerEntryCategoryRepository.deleteByTimerEntryId(id);
-        timerEntryRepository.delete(timerEntry);
+        timerEntryRepository.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 

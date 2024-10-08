@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
-// TODO add error handling, security
+// TODO add error handling
 @RestController
 @RequestMapping("/category")
 public class CategoryController {

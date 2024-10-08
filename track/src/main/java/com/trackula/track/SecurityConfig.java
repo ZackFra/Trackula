@@ -35,7 +35,9 @@ public class SecurityConfig {
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http
-                .authorizeHttpRequests(request -> request.requestMatchers("/category/**")
+                .authorizeHttpRequests(request -> request.requestMatchers(
+                        "/category/**",
+                                "/timer-entry/**")
                         .authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())

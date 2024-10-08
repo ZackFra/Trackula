@@ -11,15 +11,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.*;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.test.annotation.DirtiesContext;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.RestTemplate;
 
 
 import java.net.URI;
@@ -44,23 +40,9 @@ public class CategoryControllerTest {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
-    final static String TEST_ADMIN_USERNAME = "test-admin";
-    final static String TEST_ADMIN_PASSWORD = "password";
-    final static String TEST_USER_USERNAME = "test-user";
-    final static String TEST_USER_PASSWORD = "password";
-
     @BeforeEach
-    @Transactional
     void makeData() {
-        createTestUsersIfDoesNotExist();
-
-        jdbcTemplate.execute("DELETE FROM timer_entry_category");
-        jdbcTemplate.execute("DELETE FROM category");
-        jdbcTemplate.execute("DELETE FROM timer_entry");
-
-        jdbcTemplate.execute("INSERT INTO category(id, name, owner) VALUES(0, 'test', 'test-admin')");
-        jdbcTemplate.execute("INSERT INTO timer_entry(id, owner, time_tracked) VALUES(0, 'test-admin', 3600)");
-        jdbcTemplate.execute("INSERT INTO timer_entry_category(id, timer_entry_id, category_id, owner) VALUES(0, 0, 0, 'test-admin')");
+        TestDataUtils.makeControllerData(jdbcTemplate, passwordEncoder, jdbcUserDetailsManager);
     }
 
     @Test
@@ -84,7 +66,7 @@ public class CategoryControllerTest {
     @Test
     @DirtiesContext
     void ensurePostRequestCreatesNewCategory() {
-        Category category = new Category(null, "test2", TEST_ADMIN_USERNAME);
+        Category category = new Category(null, "test2", TestDataUtils.TEST_ADMIN_USERNAME);
         ResponseEntity<Void> putResponse = postCategoryAsAdmin(category);
         assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         URI location = putResponse.getHeaders().getLocation();
@@ -101,7 +83,7 @@ public class CategoryControllerTest {
 
     @Test
     void ensurePostRequestWithIdDoesNotCreateNewCategory() {
-        Category category = new Category(1L, "test2", TEST_ADMIN_USERNAME);
+        Category category = new Category(1L, "test2", TestDataUtils.TEST_ADMIN_USERNAME);
         ResponseEntity<Void> putResponse = postCategoryAsAdmin(category);
         assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         ResponseEntity<String> fetchedCategoryResponse = getCategoryByIdAsAdmin("1");
@@ -110,7 +92,7 @@ public class CategoryControllerTest {
 
     @Test
     void ensurePostRequestWithExistingNameReturnsConflict() {
-        Category category = new Category(null, "test", TEST_ADMIN_USERNAME);
+        Category category = new Category(null, "test", TestDataUtils.TEST_ADMIN_USERNAME);
         ResponseEntity<Void> putResponse = postCategoryAsAdmin(category);
         assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
     }
@@ -118,28 +100,28 @@ public class CategoryControllerTest {
     @Test
     @DirtiesContext
     void ensurePutToNameGoesThrough() {
-        Category category = new Category(0L, "test update", TEST_ADMIN_USERNAME);
+        Category category = new Category(0L, "test update", TestDataUtils.TEST_ADMIN_USERNAME);
         ResponseEntity<Void> putResponse = putCategoryAsAdmin("0", category);
         assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
 
     @Test
     void ensurePutThatDoesNotModifyNameReturnsNotModified() {
-        Category category = new Category(0L, "test", TEST_ADMIN_USERNAME);
+        Category category = new Category(0L, "test", TestDataUtils.TEST_ADMIN_USERNAME);
         ResponseEntity<Void> putResponse = putCategoryAsAdmin("0", category);
         assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_MODIFIED);
     }
 
     @Test
     void ensurePutToInvalidCategoryReturnsNotFound() {
-        Category category = new Category(1L, "new test", TEST_ADMIN_USERNAME);
+        Category category = new Category(1L, "new test", TestDataUtils.TEST_ADMIN_USERNAME);
         ResponseEntity<Void> putResponse = putCategoryAsAdmin("1", category);
         assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
     void ensurePutIdMismatchReturnsBadRequest() {
-        Category category = new Category(1L, "new test", TEST_ADMIN_USERNAME);
+        Category category = new Category(1L, "new test", TestDataUtils.TEST_ADMIN_USERNAME);
         ResponseEntity<Void> putResponse = putCategoryAsAdmin("0", category);
         assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
@@ -147,7 +129,7 @@ public class CategoryControllerTest {
     @Test
     @DirtiesContext
     void ensurePutWithNullIdSucceeds() {
-        Category category = new Category(null, "new test", TEST_ADMIN_USERNAME);
+        Category category = new Category(null, "new test", TestDataUtils.TEST_ADMIN_USERNAME);
         ResponseEntity<Void> putResponse = putCategoryAsAdmin("0", category);
         assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
     }
@@ -206,17 +188,17 @@ public class CategoryControllerTest {
 
     @Test
     void ensureUserRoleCannotUpdateCategory() {
-        Category category = new Category(0L, "update test", TEST_USER_USERNAME);
+        Category category = new Category(0L, "update test", TestDataUtils.TEST_USER_USERNAME);
         ResponseEntity<Void> response = putCategoryAsUser("0", category);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     private ResponseEntity<String> getAllCategoriesAsUser() {
-        return getAllCategories(restTemplateWithBasicAuthForUser());
+        return getAllCategories(TestDataUtils.restTemplateWithBasicAuthForUser(restTemplate));
     }
 
     private ResponseEntity<String> getAllCategoriesAsAdmin() {
-        return getAllCategories(restTemplateWithBasicAuthForAdmin());
+        return getAllCategories(TestDataUtils.restTemplateWithBasicAuthForAdmin(restTemplate));
     }
 
     private ResponseEntity<String> getAllCategories(TestRestTemplate restTemplate) {
@@ -224,11 +206,11 @@ public class CategoryControllerTest {
     }
 
     private ResponseEntity<Void> deleteCategoryAsAdmin(String id) {
-        return deleteCategory(restTemplateWithBasicAuthForAdmin(), id);
+        return deleteCategory(TestDataUtils.restTemplateWithBasicAuthForAdmin(restTemplate), id);
     }
 
     private ResponseEntity<Void> deleteCategoryAsUser(String id) {
-        return deleteCategory(restTemplateWithBasicAuthForUser(), id);
+        return deleteCategory(TestDataUtils.restTemplateWithBasicAuthForUser(restTemplate), id);
     }
 
     private ResponseEntity<Void> deleteCategory(TestRestTemplate restTemplate, String id) {
@@ -241,11 +223,11 @@ public class CategoryControllerTest {
     }
 
     private ResponseEntity<Void> putCategoryAsAdmin(String id, Category category) {
-        return putCategory(restTemplateWithBasicAuthForAdmin(), id, category);
+        return putCategory(TestDataUtils.restTemplateWithBasicAuthForAdmin(restTemplate), id, category);
     }
 
     private ResponseEntity<Void> putCategoryAsUser(String id, Category category) {
-        return putCategory(restTemplateWithBasicAuthForUser(), id, category);
+        return putCategory(TestDataUtils.restTemplateWithBasicAuthForUser(restTemplate), id, category);
     }
 
     private ResponseEntity<Void> putCategory(TestRestTemplate restTemplate, String id, Category category) {
@@ -259,11 +241,11 @@ public class CategoryControllerTest {
     }
 
     private ResponseEntity<String> getCategoryByIdAsUser(String id) {
-        return getCategoryById(restTemplateWithBasicAuthForUser(), id);
+        return getCategoryById(TestDataUtils.restTemplateWithBasicAuthForUser(restTemplate), id);
     }
 
     private ResponseEntity<String> getCategoryByIdAsAdmin(String id) {
-        return getCategoryById(restTemplateWithBasicAuthForAdmin(), id);
+        return getCategoryById(TestDataUtils.restTemplateWithBasicAuthForAdmin(restTemplate), id);
     }
 
     private ResponseEntity<String> getCategoryById(TestRestTemplate restTemplate, String id) {
@@ -271,44 +253,17 @@ public class CategoryControllerTest {
     }
 
     private ResponseEntity<String> getCategoryByPathAsAdmin(String path) {
-        return restTemplateWithBasicAuthForAdmin()
+        return TestDataUtils.restTemplateWithBasicAuthForAdmin(restTemplate)
                 .getForEntity(path, String.class);
     }
     
     private ResponseEntity<Void> postCategoryAsAdmin(Category category) {
         HttpEntity<Category> putRequest = new HttpEntity<>(category);
-        return restTemplateWithBasicAuthForAdmin().exchange(
+        return TestDataUtils.restTemplateWithBasicAuthForAdmin(restTemplate).exchange(
                 "/category",
                 HttpMethod.POST,
                 putRequest,
                 Void.class
         );
-    }
-
-    private TestRestTemplate restTemplateWithBasicAuthForAdmin() {
-        return restTemplate.withBasicAuth(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD);
-    }
-
-    private TestRestTemplate restTemplateWithBasicAuthForUser() {
-        return restTemplate.withBasicAuth(TEST_USER_USERNAME, TEST_USER_PASSWORD);
-    }
-
-    private void createTestUsersIfDoesNotExist() {
-        if(!jdbcUserDetailsManager.userExists(TEST_ADMIN_USERNAME)) {
-            UserDetails testAdmin = User.builder()
-                    .username(TEST_ADMIN_USERNAME)
-                    .password(passwordEncoder.encode(TEST_ADMIN_PASSWORD))
-                    .roles("admin")
-                    .build();
-            jdbcUserDetailsManager.createUser(testAdmin);
-        }
-        if(!jdbcUserDetailsManager.userExists(TEST_USER_USERNAME)) {
-            UserDetails testUser = User.builder()
-                    .username(TEST_USER_USERNAME)
-                    .password(passwordEncoder.encode(TEST_ADMIN_PASSWORD))
-                    .roles("user")
-                    .build();
-            jdbcUserDetailsManager.createUser(testUser);
-        }
     }
 }
