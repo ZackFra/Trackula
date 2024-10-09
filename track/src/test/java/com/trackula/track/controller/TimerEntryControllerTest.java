@@ -3,7 +3,11 @@ package com.trackula.track.controller;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trackula.track.TrackApplication;
+import com.trackula.track.dto.CreateTimerEntryRequest;
 import com.trackula.track.model.TimerEntry;
+import com.trackula.track.repository.CategoryJdbcRepository;
+import com.trackula.track.repository.TimerEntryCategoryJdbcRepository;
+import com.trackula.track.repository.TimerEntryJdbcRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,9 +46,25 @@ public class TimerEntryControllerTest {
     @Autowired
     ObjectMapper objectMapper;
 
+    @Autowired
+    TimerEntryJdbcRepository timerEntryJdbcRepository;
+
+    @Autowired
+    TimerEntryCategoryJdbcRepository timerEntryCategoryJdbcRepository;
+
+    @Autowired
+    CategoryJdbcRepository categoryJdbcRepository;
+
     @BeforeEach
     void makeData() {
-        makeControllerData(jdbcTemplate, passwordEncoder, jdbcUserDetailsManager);
+        makeControllerData(
+                timerEntryJdbcRepository,
+                categoryJdbcRepository,
+                timerEntryCategoryJdbcRepository,
+                jdbcTemplate,
+                passwordEncoder,
+                jdbcUserDetailsManager
+        );
     }
 
     @Test
@@ -59,7 +79,7 @@ public class TimerEntryControllerTest {
         );
         assertThat(timerEntries.size()).isEqualTo(1);
         TimerEntry timerEntry = timerEntries.getFirst();
-        assertThat(timerEntry.id()).isEqualTo(USER_TIMER_ENTRY_ID);
+        assertThat(timerEntry.id()).isNotNull();
     }
 
     @Test
@@ -76,6 +96,9 @@ public class TimerEntryControllerTest {
 
     @Test
     void ensureUserCannotSeeTimerEntriesTheyDoNotOwn() {
+        ResponseEntity<String> adminResponse = restTemplateWithBasicAuthForAdmin(restTemplate)
+                .getForEntity("/timer-entry", String.class);
+
         ResponseEntity<String> response = restTemplateWithBasicAuthForUser(restTemplate)
                 .getForEntity("/timer-entry/0", String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
@@ -104,12 +127,9 @@ public class TimerEntryControllerTest {
     @Test
     @DirtiesContext
     void ensureUserCanCreateTimerEntry() throws Exception {
-        TimerEntry timerEntry = new TimerEntry(
-                null,
-                null,
-                3600L
-        );
-        HttpEntity<TimerEntry> request = new HttpEntity<>(timerEntry);
+        CreateTimerEntryRequest createTimerEntryRequest = new CreateTimerEntryRequest();
+        createTimerEntryRequest.setTimeTracked(3600L);
+        HttpEntity<CreateTimerEntryRequest> request = new HttpEntity<>(createTimerEntryRequest);
         ResponseEntity<Void> response = restTemplateWithBasicAuthForUser(restTemplate)
                 .postForEntity("/timer-entry", request, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
@@ -128,12 +148,9 @@ public class TimerEntryControllerTest {
     @Test
     @DirtiesContext
     void ensureAdminCanCreateTimerEntry() throws Exception {
-        TimerEntry timerEntry = new TimerEntry(
-                null,
-                null,
-                3600L
-        );
-        HttpEntity<TimerEntry> request = new HttpEntity<>(timerEntry);
+        CreateTimerEntryRequest createTimerEntryRequest = new CreateTimerEntryRequest();
+        createTimerEntryRequest.setTimeTracked(3600L);
+        HttpEntity<CreateTimerEntryRequest> request = new HttpEntity<>(createTimerEntryRequest);
         ResponseEntity<Void> response = restTemplateWithBasicAuthForAdmin(restTemplate)
                 .postForEntity("/timer-entry", request, Void.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);

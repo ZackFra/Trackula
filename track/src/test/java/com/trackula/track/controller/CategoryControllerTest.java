@@ -4,6 +4,9 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.trackula.track.TrackApplication;
 import com.trackula.track.model.Category;
+import com.trackula.track.repository.CategoryJdbcRepository;
+import com.trackula.track.repository.TimerEntryCategoryJdbcRepository;
+import com.trackula.track.repository.TimerEntryJdbcRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,9 +43,25 @@ public class CategoryControllerTest {
     @Autowired
     JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    TimerEntryJdbcRepository timerEntryJdbcRepository;
+
+    @Autowired
+    CategoryJdbcRepository categoryJdbcRepository;
+
+    @Autowired
+    TimerEntryCategoryJdbcRepository timerEntryCategoryJdbcRepository;
+
     @BeforeEach
     void makeData() {
-        TestDataUtils.makeControllerData(jdbcTemplate, passwordEncoder, jdbcUserDetailsManager);
+        TestDataUtils.makeControllerData(
+                timerEntryJdbcRepository,
+                categoryJdbcRepository,
+                timerEntryCategoryJdbcRepository,
+                jdbcTemplate,
+                passwordEncoder,
+                jdbcUserDetailsManager
+        );
     }
 
     @Test
@@ -258,11 +277,11 @@ public class CategoryControllerTest {
     }
     
     private ResponseEntity<Void> postCategoryAsAdmin(Category category) {
-        HttpEntity<Category> putRequest = new HttpEntity<>(category);
+        HttpEntity<Category> postRequest = new HttpEntity<>(category);
         return TestDataUtils.restTemplateWithBasicAuthForAdmin(restTemplate).exchange(
                 "/category",
                 HttpMethod.POST,
-                putRequest,
+                postRequest,
                 Void.class
         );
     }

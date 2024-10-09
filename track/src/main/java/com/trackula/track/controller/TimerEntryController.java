@@ -1,7 +1,9 @@
 package com.trackula.track.controller;
 
+import com.trackula.track.dto.CreateTimerEntryRequest;
 import com.trackula.track.model.TimerEntry;
 import com.trackula.track.repository.TimerEntryCategoryRepository;
+import com.trackula.track.repository.TimerEntryJdbcRepository;
 import com.trackula.track.repository.TimerEntryRepository;
 import com.trackula.track.service.AuthService;
 import org.springframework.http.HttpStatus;
@@ -21,10 +23,13 @@ public class TimerEntryController {
     private final TimerEntryRepository timerEntryRepository;
     private final TimerEntryCategoryRepository timerEntryCategoryRepository;
     private final AuthService authService;
-    public TimerEntryController(TimerEntryRepository timerEntryRepository, TimerEntryCategoryRepository timerEntryCategoryRepository, AuthService authService) {
+    private final TimerEntryJdbcRepository timerEntryJdbcRepository;
+
+    public TimerEntryController(TimerEntryRepository timerEntryRepository, TimerEntryCategoryRepository timerEntryCategoryRepository, AuthService authService, TimerEntryJdbcRepository timerEntryJdbcRepository) {
         this.timerEntryRepository = timerEntryRepository;
         this.timerEntryCategoryRepository = timerEntryCategoryRepository;
         this.authService = authService;
+        this.timerEntryJdbcRepository = timerEntryJdbcRepository;
     }
 
     @GetMapping
@@ -56,31 +61,19 @@ public class TimerEntryController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createTimerEntry(@RequestBody TimerEntry timerEntry, Principal principal) {
-        if(timerEntry.id() != null) {
-            return ResponseEntity.badRequest().build();
-        }
-        if(timerEntry.timeTracked() == null) {
-            return ResponseEntity.badRequest().build();
-        }
-        if(timerEntry.owner() != null) {
-            return ResponseEntity.badRequest().build();
-        }
-
+    public ResponseEntity<Void> createTimerEntry(@RequestBody CreateTimerEntryRequest createTimerEntryRequest, Principal principal) {
         TimerEntry newTimerEntry = new TimerEntry(
                 null,
                 principal.getName(),
-                timerEntry.timeTracked()
+                createTimerEntryRequest.getTimeTracked()
         );
-        TimerEntry createdTimerEntry = timerEntryRepository.save(newTimerEntry);
+        TimerEntry createdTimerEntry = timerEntryJdbcRepository.save(newTimerEntry);
         URI uri = URI.create("/timer-entry/" + createdTimerEntry.id());
         return ResponseEntity.created(uri).build();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateTimerEntry(@PathVariable Long id,
-                                                 @RequestBody
-                                                 TimerEntry timerEntry, Principal principal) {
+    public ResponseEntity<Void> updateTimerEntry(@PathVariable Long id, @RequestBody TimerEntry timerEntry, Principal principal) {
         if(timerEntry.id() != null && !id.equals(timerEntry.id())) {
             return ResponseEntity.badRequest().build();
         }
