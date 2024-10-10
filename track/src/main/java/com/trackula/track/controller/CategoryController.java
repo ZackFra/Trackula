@@ -1,6 +1,9 @@
 package com.trackula.track.controller;
 
+import com.trackula.track.dto.CreateCategoryRequest;
+import com.trackula.track.dto.UpdateCategoryRequest;
 import com.trackula.track.model.Category;
+import com.trackula.track.repository.CategoryJdbcRepository;
 import com.trackula.track.repository.CategoryRepository;
 import com.trackula.track.repository.TimerEntryCategoryRepository;
 import org.springframework.http.HttpStatus;
@@ -21,9 +24,12 @@ import java.util.stream.StreamSupport;
 public class CategoryController {
     private final CategoryRepository categoryRepository;
     private final TimerEntryCategoryRepository timerEntryCategoryRepository;
-    public CategoryController(CategoryRepository categoryRepository, TimerEntryCategoryRepository timerEntryCategoryRepository) {
+    private final CategoryJdbcRepository categoryJdbcRepository;
+
+    public CategoryController(CategoryRepository categoryRepository, TimerEntryCategoryRepository timerEntryCategoryRepository, CategoryJdbcRepository categoryJdbcRepository) {
         this.categoryRepository = categoryRepository;
         this.timerEntryCategoryRepository = timerEntryCategoryRepository;
+        this.categoryJdbcRepository = categoryJdbcRepository;
     }
 
     // TODO Pagification
@@ -37,8 +43,7 @@ public class CategoryController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Category> getCategoryById(@PathVariable Long id) {
-        Optional<Category> categoryOptional;
-        categoryOptional = categoryRepository.findById(id);
+        Optional<Category> categoryOptional = categoryRepository.findById(id);
         if (categoryOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
@@ -48,46 +53,45 @@ public class CategoryController {
 
     @PreAuthorize("hasRole('ROLE_admin')")
     @PostMapping
-    public ResponseEntity<Void> createCategory(@RequestBody Category category) {
-        if(category.id() != null) {
+    public ResponseEntity<Void> createCategory(@RequestBody CreateCategoryRequest createCategoryRequest, Principal principal) {
+        if(createCategoryRequest.getName() == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
-        if(category.name() == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-        }
-        boolean isInDatabaseAlready = categoryRepository.existsByName(category.name());
+        boolean isInDatabaseAlready = categoryRepository.existsByName(createCategoryRequest.getName());
         if(isInDatabaseAlready) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
-        Category newCategory = categoryRepository.save(category);
+        Category newCategory = categoryJdbcRepository.save(new Category(
+                null,
+                createCategoryRequest.getName(),
+                principal.getName()
+        ));
         URI uri = URI.create("/category/" + newCategory.id());
         return ResponseEntity.created(uri).build();
     }
 
     @PreAuthorize("hasRole('ROLE_admin')")
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateCategory(@PathVariable Long id, @RequestBody Category category) {
+    public ResponseEntity<Void> updateCategory(@PathVariable Long id, @RequestBody UpdateCategoryRequest updateCategoryRequest, Principal principal) {
         Optional<Category> existingCategoryOptional = categoryRepository.findById(id);
         if(existingCategoryOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
         Category existingCategory = existingCategoryOptional.get();
-        if(category.id() != null && !existingCategory.id().equals(category.id())) {
-            return ResponseEntity
-                    .badRequest()
-                    .build();
+        String newName = existingCategory.name();
+        String newOwner = existingCategory.owner();
+        if(updateCategoryRequest.getName() != null) {
+            newName = updateCategoryRequest.getName();
         }
-        if(existingCategory.name().equals(category.name())) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_MODIFIED)
-                    .build();
+        if(updateCategoryRequest.getOwner() != null) {
+            newOwner = updateCategoryRequest.getOwner();
         }
         Category newCategory = new Category(
                 id,
-                category.name(),
-                "admin"
+                newName,
+                newOwner
         );
-        categoryRepository.save(newCategory);
+        categoryJdbcRepository.save(newCategory);
         return ResponseEntity.noContent().build();
     }
 

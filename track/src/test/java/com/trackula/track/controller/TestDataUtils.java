@@ -23,6 +23,7 @@ public class TestDataUtils {
     final static String TEST_ADMIN_PASSWORD = "admin-password";
     final static String TEST_USER_USERNAME = "test-user";
     final static String TEST_USER_PASSWORD = "user-password";
+    final static String TEST_CATEGORY_NAME = "test";
 
     @Transactional
     public static void makeControllerData(
@@ -64,7 +65,7 @@ public class TestDataUtils {
         Category newCategory = categoryJdbcRepository.save(
                 new Category(
                         null,
-                        "test",
+                        TEST_CATEGORY_NAME,
                         "test-admin"
                 )
         );
