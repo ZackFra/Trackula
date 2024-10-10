@@ -91,7 +91,7 @@ public class CategoryController {
                 newName,
                 newOwner
         );
-        categoryJdbcRepository.save(newCategory);
+        categoryRepository.save(newCategory);
         return ResponseEntity.noContent().build();
     }
 

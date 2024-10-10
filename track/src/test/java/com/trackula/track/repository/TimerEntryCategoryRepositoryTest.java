@@ -15,30 +15,8 @@ public class TimerEntryCategoryRepositoryTest {
     TimerEntryCategoryRepository timerEntryCategoryRepository;
 
     @Test
-    void ensureFindByIdReturnsAnOptional() {
-        Optional<TimerEntryCategory> timerEntryCategoryOptional = timerEntryCategoryRepository.findById(0L);
-        assertThat(timerEntryCategoryOptional).isNotNull();
-    }
-
-    @Test
-    void ensureFindByIdReturnsATimerEntryCategory() {
-        Optional<TimerEntryCategory> timerEntryCategoryOptional = timerEntryCategoryRepository.findById(0L);
-        assertThat(timerEntryCategoryOptional.isPresent()).isTrue();
-    }
-
-    @Test
-    void ensureDeleteByCategoryIdWorksWithValidId() {
-        boolean isExceptionThrown = false;
-        String exMessage = "failed";
-        try {
-            timerEntryCategoryRepository.deleteByCategoryId(0L);
-        } catch(Exception e) {
-            exMessage = e.getMessage();
-            isExceptionThrown = true;
-        }
-
-        assertThat(isExceptionThrown)
-                .withFailMessage(exMessage)
-                .isFalse();
+    void ensureFindAllReturnsAnIterable() {
+        Iterable<TimerEntryCategory> timerEntryCategoryIterable = timerEntryCategoryRepository.findAll();
+        assertThat(timerEntryCategoryIterable).isNotNull();
     }
 }

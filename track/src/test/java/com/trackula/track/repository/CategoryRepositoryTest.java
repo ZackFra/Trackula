@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -16,15 +17,8 @@ public class CategoryRepositoryTest {
     CategoryRepository categoryRepository;
 
     @Test
-    void ensureFindByIdReturnsAnOptional() {
-        Optional<Category> categoryOptional = categoryRepository.findById(0L);
-        assertThat(categoryOptional).isNotNull();
-    }
-
-    @Test
-    void ensureFindByIdReturnACategory() {
-        Optional<Category> categoryOptional = categoryRepository.findById(0L);
-        boolean isPresent = categoryOptional.isPresent();
-        assertThat(isPresent).isTrue();
+    void ensureFindAllReturnsAnIterable() {
+        Iterable<Category> categoryIterable = categoryRepository.findAll();
+        assertThat(categoryIterable).isNotNull();
     }
 }

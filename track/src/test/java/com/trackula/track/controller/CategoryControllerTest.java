@@ -21,7 +21,6 @@ import org.springframework.data.relational.core.sql.Update;
 import org.springframework.http.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.test.annotation.DirtiesContext;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -37,11 +36,6 @@ import static org.assertj.core.api.Fail.fail;
 
 @SpringBootTest(classes= TrackApplication.class, webEnvironment= SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class CategoryControllerTest {
-    @Autowired
-    PasswordEncoder passwordEncoder;
-
-    @Autowired
-    JdbcUserDetailsManager jdbcUserDetailsManager;
 
     @Autowired
     TestRestTemplate restTemplate;
@@ -50,30 +44,14 @@ public class CategoryControllerTest {
     ObjectMapper objectMapper;
 
     @Autowired
-    JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    TimerEntryJdbcRepository timerEntryJdbcRepository;
-
-    @Autowired
-    CategoryJdbcRepository categoryJdbcRepository;
-
-    @Autowired
     CategoryRepository categoryRepository;
 
     @Autowired
-    TimerEntryCategoryJdbcRepository timerEntryCategoryJdbcRepository;
+    PasswordEncoder passwordEncoder;
 
-    @BeforeEach
-    void makeData() {
-        TestDataUtils.makeControllerData(
-                timerEntryJdbcRepository,
-                categoryJdbcRepository,
-                timerEntryCategoryJdbcRepository,
-                jdbcTemplate,
-                passwordEncoder,
-                jdbcUserDetailsManager
-        );
+    @Test
+    void printOutEncryptedPassword() {
+        System.out.println(passwordEncoder.encode("admin-password"));
     }
 
     @Test
@@ -128,14 +106,16 @@ public class CategoryControllerTest {
 
     @Test
     @DirtiesContext
-    void ensurePutToNameGoesThrough() {
+    void ensurePutToNameGoesThrough() throws Exception {
         Category category = getTestCategory();
         UpdateCategoryRequest updateCategoryRequest = new UpdateCategoryRequest();
         updateCategoryRequest.setName("test2");
         ResponseEntity<Void> putResponse = putCategory(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, category.id(), updateCategoryRequest);
         assertThat(putResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
-        Category updatedCategory = getTestCategory();
-        assertThat(updatedCategory.name()).isEqualTo("test2");
+        ResponseEntity<String> getResponse = getCategoryById(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, category.id());
+        Category retrievedCategory = objectMapper.readValue(getResponse.getBody(), Category.class);
+        assertThat(retrievedCategory.name()).isEqualTo("test2");
+
     }
 
     @Test
@@ -230,7 +210,7 @@ public class CategoryControllerTest {
                 .withBasicAuth(username, password)
                 .exchange(
                         "/category/" + id,
-                        HttpMethod.PUT,
+                        HttpMethod.DELETE,
                         null,
                         Void.class
                 );

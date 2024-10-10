@@ -5,10 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trackula.track.TrackApplication;
 import com.trackula.track.dto.CreateTimerEntryRequest;
 import com.trackula.track.model.TimerEntry;
-import com.trackula.track.repository.CategoryJdbcRepository;
-import com.trackula.track.repository.TimerEntryCategoryJdbcRepository;
-import com.trackula.track.repository.TimerEntryJdbcRepository;
-import org.junit.jupiter.api.BeforeEach;
+import com.trackula.track.repository.TimerEntryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -16,9 +13,6 @@ import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.net.URI;
@@ -26,46 +20,18 @@ import java.util.List;
 
 import static com.trackula.track.controller.TestDataUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 
 @SpringBootTest(classes= TrackApplication.class, webEnvironment= SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class TimerEntryControllerTest {
 
     @Autowired
-    JdbcUserDetailsManager jdbcUserDetailsManager;
-
-    @Autowired
-    JdbcTemplate jdbcTemplate;
-
-    @Autowired
-    PasswordEncoder passwordEncoder;
+    TimerEntryRepository timerEntryRepository;
 
     @Autowired
     TestRestTemplate restTemplate;
 
     @Autowired
     ObjectMapper objectMapper;
-
-    @Autowired
-    TimerEntryJdbcRepository timerEntryJdbcRepository;
-
-    @Autowired
-    TimerEntryCategoryJdbcRepository timerEntryCategoryJdbcRepository;
-
-    @Autowired
-    CategoryJdbcRepository categoryJdbcRepository;
-
-    @BeforeEach
-    void makeData() {
-        makeControllerData(
-                timerEntryJdbcRepository,
-                categoryJdbcRepository,
-                timerEntryCategoryJdbcRepository,
-                jdbcTemplate,
-                passwordEncoder,
-                jdbcUserDetailsManager
-        );
-    }
 
     @Test
     void ensureUserCanInvokeGetTimerEntries() throws Exception {
@@ -89,39 +55,43 @@ public class TimerEntryControllerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<TimerEntry> timerEntries = objectMapper.readValue(
                 response.getBody(),
-                new TypeReference<List<TimerEntry>>() {}
+                new TypeReference<>() {}
         );
         assertThat(timerEntries.size()).isEqualTo(2);
     }
 
     @Test
     void ensureUserCannotSeeTimerEntriesTheyDoNotOwn() {
-        ResponseEntity<String> adminResponse = restTemplateWithBasicAuthForAdmin(restTemplate)
-                .getForEntity("/timer-entry", String.class);
+        Iterable<TimerEntry> timerEntries = timerEntryRepository.findAllByOwner(TEST_ADMIN_USERNAME);
+        TimerEntry adminTimerEntry = timerEntries.iterator().next();
 
-        ResponseEntity<String> response = restTemplateWithBasicAuthForUser(restTemplate)
-                .getForEntity("/timer-entry/0", String.class);
+        ResponseEntity<String> response = restTemplate.withBasicAuth(TEST_USER_USERNAME, TEST_USER_PASSWORD)
+                .getForEntity("/timer-entry/" + adminTimerEntry.id(), String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
     void ensureUserCanViewTheirTimerEntry() throws Exception {
+        Iterable<TimerEntry> userTimerEntries = timerEntryRepository.findAllByOwner(TEST_USER_USERNAME);
+        TimerEntry userTimerEntry = userTimerEntries.iterator().next();
         ResponseEntity<String> response = restTemplateWithBasicAuthForUser(restTemplate)
-                .getForEntity("/timer-entry/1", String.class);
+                .getForEntity("/timer-entry/" + userTimerEntry.id(), String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         TimerEntry timerEntry;
         timerEntry = objectMapper.readValue(response.getBody(), TimerEntry.class);
-        assertThat(timerEntry.id()).isEqualTo(1);
+        assertThat(timerEntry.owner()).isEqualTo(TEST_USER_USERNAME);
 
     }
 
     @Test
     void ensureAdminCanViewTheirTimerEntry() throws Exception {
+        Iterable<TimerEntry> adminTimerEntries = timerEntryRepository.findAllByOwner(TEST_ADMIN_USERNAME);
+        TimerEntry adminTimerEntry = adminTimerEntries.iterator().next();
         ResponseEntity<String> response = restTemplateWithBasicAuthForAdmin(restTemplate)
-                .getForEntity("/timer-entry/0", String.class);
+                .getForEntity("/timer-entry/" + adminTimerEntry.id(), String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         TimerEntry timerEntry = objectMapper.readValue(response.getBody(), TimerEntry.class);
-        assertThat(timerEntry.id()).isEqualTo(0);
+        assertThat(timerEntry.owner()).isEqualTo(TEST_ADMIN_USERNAME);
     }
 
     @Test

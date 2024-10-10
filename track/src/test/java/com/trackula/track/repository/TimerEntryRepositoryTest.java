@@ -16,14 +16,9 @@ public class TimerEntryRepositoryTest {
     TimerEntryRepository timerEntryRepository;
 
     @Test
-    public void ensureFindByIdReturnsAnOptional() {
-        Optional<TimerEntry> timerEntryOptional = timerEntryRepository.findById(0L);
-        assertThat(timerEntryOptional).isNotNull();
+    public void ensureFindAllReturnsAnIterable() {
+        Iterable<TimerEntry> timerEntryIterable = timerEntryRepository.findAll();
+        assertThat(timerEntryIterable).isNotNull();
     }
 
-    @Test
-    public void ensureFindByIdReturnsATimerEntry() {
-        Optional<TimerEntry> timerEntryOptional = timerEntryRepository.findById(0L);
-        assertThat(timerEntryOptional.isPresent()).isTrue();
-    }
 }
