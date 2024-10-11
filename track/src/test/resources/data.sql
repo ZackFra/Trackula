@@ -56,23 +56,23 @@ WHERE NOT EXISTS (
 );
 
 INSERT INTO timer_entry_category(category_id, timer_entry_id, owner)
-    SELECT te.id, c.id, 'test-admin'
-    FROM timer_entry te, category c
-    WHERE te.owner = 'test-admin'
-    AND c.name = 'test'
-    AND NOT EXISTS (
-        SELECT 1
-        FROM timer_entry_category
-        WHERE owner = 'test-admin'
-    );
+SELECT c.id, te.id, 'test-admin'
+FROM timer_entry te, category c
+WHERE te.owner = 'test-admin'
+AND c.name = 'test'
+AND NOT EXISTS (
+    SELECT 1
+    FROM timer_entry_category
+    WHERE owner = 'test-admin'
+);
 
 INSERT INTO timer_entry_category(category_id, timer_entry_id, owner)
-    SELECT te.id, c.id, 'test-user'
-    FROM timer_entry te, category c
-    WHERE te.owner = 'test-admin'
-    AND c.name = 'test'
-    AND NOT EXISTS (
-        SELECT 1
-        FROM timer_entry_category
-        WHERE owner = 'test-user'
-    );
+SELECT c.id, te.id, 'test-user'
+FROM timer_entry te, category c
+WHERE te.owner = 'test-user'
+AND c.name = 'test'
+AND NOT EXISTS (
+    SELECT 1
+    FROM timer_entry_category
+    WHERE owner = 'test-user'
+);

@@ -44,7 +44,8 @@ public class SecurityConfig {
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         return http.authorizeHttpRequests(request -> request.requestMatchers(
                         "/category/**",
-                                "/timer-entry/**")
+                                "/timer-entry/**",
+                                "/timer-entry-category/**")
                         .authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)

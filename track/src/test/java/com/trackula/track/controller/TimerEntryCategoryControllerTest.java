@@ -1,0 +1,155 @@
+package com.trackula.track.controller;
+
+import com.trackula.track.TrackApplication;
+import com.trackula.track.dto.CreateTimerEntryCategoryRequest;
+import com.trackula.track.dto.CreateTimerEntryRequest;
+import com.trackula.track.model.Category;
+import com.trackula.track.model.TimerEntry;
+import com.trackula.track.model.TimerEntryCategory;
+import com.trackula.track.repository.CategoryRepository;
+import com.trackula.track.repository.TimerEntryCategoryRepository;
+import com.trackula.track.repository.TimerEntryJdbcRepository;
+import com.trackula.track.repository.TimerEntryRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.annotation.DirtiesContext;
+
+import java.util.Optional;
+
+import static com.trackula.track.controller.TestDataUtils.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Fail.fail;
+
+@SpringBootTest(classes= TrackApplication.class, webEnvironment= SpringBootTest.WebEnvironment.RANDOM_PORT)
+public class TimerEntryCategoryControllerTest {
+    @Autowired
+    CategoryRepository categoryRepository;
+
+    @Autowired
+    TimerEntryRepository timerEntryRepository;
+
+    @Autowired
+    TimerEntryJdbcRepository timerEntryJdbcRepository;
+
+    @Autowired
+    TimerEntryCategoryRepository timerEntryCategoryRepository;
+
+    @Autowired
+    TestRestTemplate restTemplate;
+
+    @Test
+    void ensureAdminCannotCreateConflictingTimerEntryCategory() {
+        Category category = getCategory();
+        TimerEntry timerEntry = getTimerEntry(TEST_ADMIN_USERNAME);
+        CreateTimerEntryCategoryRequest createTimerEntryCategoryRequest = new CreateTimerEntryCategoryRequest();
+        createTimerEntryCategoryRequest.setCategoryId(category.id());
+        createTimerEntryCategoryRequest.setTimerEntryId(timerEntry.id());
+
+        ResponseEntity<Void> response = createTimerEntryCategory(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, createTimerEntryCategoryRequest);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void ensureUserCannotCreateConflictingTimerEntryCategory() {
+        Category category = getCategory();
+        TimerEntry timerEntry = getTimerEntry(TEST_USER_USERNAME);
+        CreateTimerEntryCategoryRequest createTimerEntryCategoryRequest = new CreateTimerEntryCategoryRequest();
+        createTimerEntryCategoryRequest.setCategoryId(category.id());
+        createTimerEntryCategoryRequest.setTimerEntryId(timerEntry.id());
+
+        ResponseEntity<Void> response = createTimerEntryCategory(TEST_USER_USERNAME, TEST_USER_PASSWORD, createTimerEntryCategoryRequest);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureAdminCanCreateTimerEntryCategory() {
+        TimerEntry timerEntry = createTimerEntry(TEST_ADMIN_USERNAME, 3600L);
+        Category category = getCategory();
+        CreateTimerEntryCategoryRequest createTimerEntryCategoryRequest = new CreateTimerEntryCategoryRequest();
+        createTimerEntryCategoryRequest.setTimerEntryId(timerEntry.id());
+        createTimerEntryCategoryRequest.setCategoryId(category.id());
+        ResponseEntity<Void> response = createTimerEntryCategory(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, createTimerEntryCategoryRequest);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureUserCanCreateTimerEntryCategory() {
+        TimerEntry timerEntry = createTimerEntry(TEST_USER_USERNAME, 3600L);
+        Category category = getCategory();
+        CreateTimerEntryCategoryRequest createTimerEntryCategoryRequest = new CreateTimerEntryCategoryRequest();
+        createTimerEntryCategoryRequest.setTimerEntryId(timerEntry.id());
+        createTimerEntryCategoryRequest.setCategoryId(category.id());
+        ResponseEntity<Void> response = createTimerEntryCategory(TEST_USER_USERNAME, TEST_USER_PASSWORD, createTimerEntryCategoryRequest);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    }
+
+    @Test
+    void ensureRequestsWithoutACategoryGetsRejected() {
+        TimerEntry timerEntry = createTimerEntry(TEST_USER_USERNAME, 3600L);
+        CreateTimerEntryCategoryRequest createTimerEntryCategoryRequest = new CreateTimerEntryCategoryRequest();
+        createTimerEntryCategoryRequest.setTimerEntryId(timerEntry.id());
+        createTimerEntryCategoryRequest.setCategoryId(null);
+        ResponseEntity<Void> response = createTimerEntryCategory(TEST_USER_USERNAME, TEST_USER_PASSWORD, createTimerEntryCategoryRequest);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void ensureRequestsWithoutATimerEntryGetsRejected() {
+        Category category = getCategory();
+        CreateTimerEntryCategoryRequest createTimerEntryCategoryRequest = new CreateTimerEntryCategoryRequest();
+        createTimerEntryCategoryRequest.setTimerEntryId(null);
+        createTimerEntryCategoryRequest.setCategoryId(category.id());
+        ResponseEntity<Void> response = createTimerEntryCategory(TEST_USER_USERNAME, TEST_USER_PASSWORD, createTimerEntryCategoryRequest);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void ensureAdminCanGetAllTimerEntryCategories() {
+        TimerEntry timerEntry = getTimerEntry(TEST_ADMIN_USERNAME);
+        ResponseEntity<String> response = getTimerEntryCategoriesByTimerEntryId(
+                TEST_ADMIN_USERNAME,
+                TEST_ADMIN_PASSWORD,
+                timerEntry.id()
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    private ResponseEntity<String> getTimerEntryCategoriesByTimerEntryId(String username, String password, Long timerEntryId) {
+        return restTemplate.withBasicAuth(username, password).getForEntity("/timer-entry-category/" + timerEntryId, String.class);
+    }
+
+    private TimerEntry createTimerEntry(String owner, Long timeTracked) {
+        TimerEntry timerEntry = new TimerEntry(
+                null,
+                owner,
+                timeTracked
+        );
+        TimerEntry savedTimerEntry = timerEntryJdbcRepository.save(timerEntry);
+        return savedTimerEntry;
+    }
+
+    private ResponseEntity<Void> createTimerEntryCategory(String username, String password, CreateTimerEntryCategoryRequest createTimerEntryCategoryRequest) {
+        HttpEntity<CreateTimerEntryCategoryRequest> request = new HttpEntity<>(createTimerEntryCategoryRequest);
+        return restTemplate.withBasicAuth(username, password)
+                .postForEntity(
+                        "/timer-entry-category",
+                        request,
+                        Void.class
+                );
+    }
+
+    private Category getCategory() {
+        return categoryRepository.findAll().iterator().next();
+    }
+
+    private TimerEntry getTimerEntry(String username) {
+        return timerEntryRepository.findAllByOwner(username).iterator().next();
+    }
+}

@@ -1,12 +1,12 @@
 package com.trackula.track.controller;
 
 import com.trackula.track.dto.CreateTimerEntryRequest;
+import com.trackula.track.dto.UpdateTimerEntryRequest;
 import com.trackula.track.model.TimerEntry;
 import com.trackula.track.repository.TimerEntryCategoryRepository;
 import com.trackula.track.repository.TimerEntryJdbcRepository;
 import com.trackula.track.repository.TimerEntryRepository;
 import com.trackula.track.service.AuthService;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -73,23 +73,35 @@ public class TimerEntryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateTimerEntry(@PathVariable Long id, @RequestBody TimerEntry timerEntry, Principal principal) {
-        if(timerEntry.id() != null && !id.equals(timerEntry.id())) {
-            return ResponseEntity.badRequest().build();
+    public ResponseEntity<Void> updateTimerEntry(@PathVariable Long id, @RequestBody UpdateTimerEntryRequest updateTimerEntryRequest, Principal principal) {
+        Optional<TimerEntry> existingTimerEntryOptional;
+        boolean isAdmin = authService.isAdmin();
+        if(isAdmin) {
+            existingTimerEntryOptional = timerEntryRepository.findById(id);
+        } else {
+            existingTimerEntryOptional = timerEntryRepository.findByIdAndOwner(id, principal.getName());
         }
-        Optional<TimerEntry> existingTimerEntryOptional = timerEntryRepository.findByIdAndOwner(id, principal.getName());
+
         if(existingTimerEntryOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
         TimerEntry existingTimerEntry = existingTimerEntryOptional.get();
-        if(existingTimerEntry.timeTracked().equals(timerEntry.timeTracked())) {
-            return ResponseEntity.status(HttpStatus.NOT_MODIFIED).build();
+
+        String owner = existingTimerEntry.owner();
+        Long timeTracked = existingTimerEntry.timeTracked();
+        if(updateTimerEntryRequest.getOwner() != null){
+            owner = updateTimerEntryRequest.getOwner();
+        }
+
+        if(updateTimerEntryRequest.getTimeTracked() != null) {
+            timeTracked = updateTimerEntryRequest.getTimeTracked();
         }
 
         TimerEntry updatedTimerEntry = new TimerEntry(
             existingTimerEntry.id(),
-            existingTimerEntry.owner(),
-            timerEntry.timeTracked()
+            owner,
+            timeTracked
         );
         timerEntryRepository.save(updatedTimerEntry);
         return ResponseEntity.noContent().build();

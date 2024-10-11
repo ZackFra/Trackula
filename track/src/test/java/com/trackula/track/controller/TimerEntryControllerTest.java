@@ -4,22 +4,28 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trackula.track.TrackApplication;
 import com.trackula.track.dto.CreateTimerEntryRequest;
+import com.trackula.track.dto.UpdateCategoryRequest;
+import com.trackula.track.dto.UpdateTimerEntryRequest;
 import com.trackula.track.model.TimerEntry;
 import com.trackula.track.repository.TimerEntryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.data.relational.core.sql.Update;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 
 import java.net.URI;
 import java.util.List;
+import java.util.Optional;
 
 import static com.trackula.track.controller.TestDataUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Fail.fail;
 
 @SpringBootTest(classes= TrackApplication.class, webEnvironment= SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class TimerEntryControllerTest {
@@ -134,5 +140,127 @@ public class TimerEntryControllerTest {
                 TimerEntry.class
         );
         assertThat(newTimerEntry.id()).isNotNull();
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureAdminCanUpdateTimerEntry() {
+        Iterable<TimerEntry> timerEntries = timerEntryRepository.findAllByOwner(TEST_ADMIN_USERNAME);
+        TimerEntry timerEntry = timerEntries.iterator().next();
+        UpdateTimerEntryRequest updateTimerEntryRequest = new UpdateTimerEntryRequest();
+        updateTimerEntryRequest.setTimeTracked(4800L);
+        ResponseEntity<Void> response = updateTimerEntry(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, updateTimerEntryRequest, timerEntry.id());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        Optional<TimerEntry> updatedTimerEntryOptional = timerEntryRepository.findById(timerEntry.id());
+        if(updatedTimerEntryOptional.isEmpty()) {
+            fail("Expected timer entry to exist");
+        }
+        TimerEntry updatedTimerEntry = updatedTimerEntryOptional.get();
+        assertThat(updatedTimerEntry.timeTracked()).isEqualTo(4800L);
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureUserCanUpdateTimeTrackedOnEntry() {
+        Iterable<TimerEntry> timerEntries = timerEntryRepository.findAllByOwner(TEST_USER_USERNAME);
+        TimerEntry timerEntry = timerEntries.iterator().next();
+        UpdateTimerEntryRequest updateTimerEntryRequest = new UpdateTimerEntryRequest();
+        updateTimerEntryRequest.setTimeTracked(4800L);
+        ResponseEntity<Void> response = updateTimerEntry(TEST_USER_USERNAME, TEST_USER_PASSWORD, updateTimerEntryRequest, timerEntry.id());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        Optional<TimerEntry> updatedTimerEntryOptional = timerEntryRepository.findById(timerEntry.id());
+        if(updatedTimerEntryOptional.isEmpty()) {
+            fail("Expected timer entry to exist");
+        }
+        TimerEntry updatedTimerEntry = updatedTimerEntryOptional.get();
+        assertThat(updatedTimerEntry.timeTracked()).isEqualTo(4800L);
+    }
+
+    @Test
+    void ensureUserCannotUpdateTimerEntryTheyDoNotOwn() {
+        Iterable<TimerEntry> timerEntries = timerEntryRepository.findAllByOwner(TEST_ADMIN_USERNAME);
+        TimerEntry timerEntry = timerEntries.iterator().next();
+        UpdateTimerEntryRequest updateTimerEntryRequest = new UpdateTimerEntryRequest();
+        updateTimerEntryRequest.setTimeTracked(4800L);
+        ResponseEntity<Void> response = updateTimerEntry(TEST_USER_USERNAME, TEST_USER_PASSWORD, updateTimerEntryRequest, timerEntry.id());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureAdminUserCanChangeTimerEntryOwner() {
+        Iterable<TimerEntry> timerEntries = timerEntryRepository.findAllByOwner(TEST_USER_USERNAME);
+        TimerEntry timerEntry = timerEntries.iterator().next();
+        UpdateTimerEntryRequest updateTimerEntryRequest = new UpdateTimerEntryRequest();
+        updateTimerEntryRequest.setOwner(TEST_ADMIN_USERNAME);
+        ResponseEntity<Void> response = updateTimerEntry(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, updateTimerEntryRequest, timerEntry.id());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        Optional<TimerEntry> updatedTimerEntryOptional = timerEntryRepository.findById(timerEntry.id());
+        if(updatedTimerEntryOptional.isEmpty()) {
+            fail("Expected timer entry to exist");
+        }
+        TimerEntry updatedTimerEntry = updatedTimerEntryOptional.get();
+        assertThat(updatedTimerEntry.owner()).isEqualTo(TEST_ADMIN_USERNAME);
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureAdminCanDeleteUserTimerEntry() {
+        TimerEntry timerEntry = getFirstTimerEntryFor(TEST_USER_USERNAME);
+        ResponseEntity<Void> response = deleteTimerEntry(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, timerEntry.id());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureUserCanDeleteTimerEntry() {
+        TimerEntry timerEntry = getFirstTimerEntryFor(TEST_USER_USERNAME);
+        ResponseEntity<Void> response = deleteTimerEntry(TEST_USER_USERNAME, TEST_USER_PASSWORD, timerEntry.id());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureUserCannotDeleteAdminTimerEntry() {
+        TimerEntry timerEntry = getFirstTimerEntryFor(TEST_ADMIN_USERNAME);
+        ResponseEntity<Void> response = deleteTimerEntry(TEST_USER_USERNAME, TEST_USER_PASSWORD, timerEntry.id());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureAdminCanDeleteTheirOwnTimerEntry() {
+        TimerEntry timerEntry = getFirstTimerEntryFor(TEST_ADMIN_USERNAME);
+        ResponseEntity<Void> response = deleteTimerEntry(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, timerEntry.id());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    private TimerEntry getFirstTimerEntryFor(String username) {
+        Iterable<TimerEntry> timerEntries = timerEntryRepository.findAllByOwner(username);
+        TimerEntry timerEntry = timerEntries.iterator().next();
+        return timerEntry;
+    }
+
+    private ResponseEntity<Void> deleteTimerEntry(String username, String password, Long id) {
+        return restTemplate.withBasicAuth(username, password)
+                .exchange(
+                        "/timer-entry/" + id,
+                        HttpMethod.DELETE,
+                        null,
+                        Void.class
+                );
+    }
+
+    private ResponseEntity<Void> updateTimerEntry(String username, String password, UpdateTimerEntryRequest updateTimerEntryRequest, Long id) {
+        HttpEntity<UpdateTimerEntryRequest> request = new HttpEntity<>(updateTimerEntryRequest);
+        return restTemplate.withBasicAuth(username, password).exchange(
+                "/timer-entry/" + id,
+                HttpMethod.PUT,
+                request,
+                Void.class
+        );
     }
 }
