@@ -1,5 +1,7 @@
 package com.trackula.track.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trackula.track.TrackApplication;
 import com.trackula.track.dto.CreateTimerEntryCategoryRequest;
 import com.trackula.track.dto.CreateTimerEntryRequest;
@@ -15,10 +17,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.annotation.DirtiesContext;
 
+import java.util.List;
 import java.util.Optional;
 
 import static com.trackula.track.controller.TestDataUtils.*;
@@ -41,6 +45,9 @@ public class TimerEntryCategoryControllerTest {
 
     @Autowired
     TestRestTemplate restTemplate;
+
+    @Autowired
+    ObjectMapper objectMapper;
 
     @Test
     void ensureAdminCannotCreateConflictingTimerEntryCategory() {
@@ -111,18 +118,133 @@ public class TimerEntryCategoryControllerTest {
     }
 
     @Test
-    void ensureAdminCanGetAllTimerEntryCategories() {
+    void ensureAdminCanGetAllTimerEntryCategoriesForAdminTimerEntry() throws Exception {
         TimerEntry timerEntry = getTimerEntry(TEST_ADMIN_USERNAME);
+        assertThat(timerEntry.id()).isNotNull();
         ResponseEntity<String> response = getTimerEntryCategoriesByTimerEntryId(
                 TEST_ADMIN_USERNAME,
                 TEST_ADMIN_PASSWORD,
                 timerEntry.id()
         );
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<TimerEntryCategory> timerEntryCategories = objectMapper.readValue(
+                response.getBody(),
+                new TypeReference<>() {}
+        );
+
+        assertThat(timerEntryCategories.size()).isEqualTo(1);
+        assertThat(timerEntryCategories.get(0).timerEntryId()).isEqualTo(timerEntry.id());
+    }
+
+    @Test
+    void ensureAdminCanGetAllTimerEntryCategoriesForUserTimerEntry() throws Exception {
+        TimerEntry timerEntry = getTimerEntry(TEST_USER_USERNAME);
+        assertThat(timerEntry.id()).isNotNull();
+        ResponseEntity<String> response = getTimerEntryCategoriesByTimerEntryId(
+                TEST_ADMIN_USERNAME,
+                TEST_ADMIN_PASSWORD,
+                timerEntry.id()
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<TimerEntryCategory> timerEntryCategories = objectMapper.readValue(
+                response.getBody(),
+                new TypeReference<>() {}
+        );
+
+        assertThat(timerEntryCategories.size()).isEqualTo(1);
+        assertThat(timerEntryCategories.get(0).timerEntryId()).isEqualTo(timerEntry.id());
+    }
+
+    @Test
+    void ensureUserCanGetAllTimerEntryCategoriesForUserTimerEntry() throws Exception {
+        TimerEntry timerEntry = getTimerEntry(TEST_USER_USERNAME);
+        assertThat(timerEntry.id()).isNotNull();
+        ResponseEntity<String> response = getTimerEntryCategoriesByTimerEntryId(
+                TEST_USER_USERNAME,
+                TEST_USER_PASSWORD,
+                timerEntry.id()
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<TimerEntryCategory> timerEntryCategories = objectMapper.readValue(
+                response.getBody(),
+                new TypeReference<>() {}
+        );
+
+        assertThat(timerEntryCategories.size()).isEqualTo(1);
+        assertThat(timerEntryCategories.get(0).timerEntryId()).isEqualTo(timerEntry.id());
+    }
+
+    @Test
+    void ensureUserCannotGetAllTimerEntryCategoriesForAdminTimerEntry() throws Exception {
+        TimerEntry timerEntry = getTimerEntry(TEST_ADMIN_USERNAME);
+        assertThat(timerEntry.id()).isNotNull();
+        ResponseEntity<String> response = getTimerEntryCategoriesByTimerEntryId(
+                TEST_USER_USERNAME,
+                TEST_USER_PASSWORD,
+                timerEntry.id()
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureAdminCanDeleteAdminTimerEntryCategory() {
+        TimerEntryCategory timerEntryCategory = getFirstTimerEntryCategory(TEST_ADMIN_USERNAME);
+        ResponseEntity<Void> deleteResponse = deleteTimerEntryCategory(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, timerEntryCategory.id());
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        Optional<TimerEntryCategory> timerEntryCategoryOptional = timerEntryCategoryRepository.findById(timerEntryCategory.id());
+        assertThat(timerEntryCategoryOptional.isPresent()).isFalse();
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureAdminCanDeleteUserTimerEntryCategory() {
+        TimerEntryCategory timerEntryCategory = getFirstTimerEntryCategory(TEST_USER_USERNAME);
+        ResponseEntity<Void> deleteResponse = deleteTimerEntryCategory(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, timerEntryCategory.id());
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        Optional<TimerEntryCategory> timerEntryCategoryOptional = timerEntryCategoryRepository.findById(timerEntryCategory.id());
+        assertThat(timerEntryCategoryOptional.isPresent()).isFalse();
+    }
+
+    @Test
+    @DirtiesContext
+    void ensureUserCanDeleteUserTimerEntryCategory() {
+        TimerEntryCategory timerEntryCategory = getFirstTimerEntryCategory(TEST_USER_USERNAME);
+        ResponseEntity<Void> deleteResponse = deleteTimerEntryCategory(TEST_USER_USERNAME, TEST_USER_PASSWORD, timerEntryCategory.id());
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        Optional<TimerEntryCategory> timerEntryCategoryOptional = timerEntryCategoryRepository.findById(timerEntryCategory.id());
+        assertThat(timerEntryCategoryOptional.isPresent()).isFalse();
+    }
+
+    @Test
+    void ensureUserCannotDeleteAdminTimerEntryCategory() {
+        TimerEntryCategory timerEntryCategory = getFirstTimerEntryCategory(TEST_ADMIN_USERNAME);
+        ResponseEntity<Void> deleteResponse = deleteTimerEntryCategory(TEST_USER_USERNAME, TEST_USER_PASSWORD, timerEntryCategory.id());
+        assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    private ResponseEntity<Void> deleteTimerEntryCategory(String username, String password, Long id) {
+        return restTemplate
+                .withBasicAuth(username, password)
+                .exchange(
+                        "/timer-entry-category/" + id,
+                        HttpMethod.DELETE,
+                        null,
+                        Void.class
+                );
+    }
+
+    private TimerEntryCategory getFirstTimerEntryCategory(String username) {
+        Iterable<TimerEntryCategory> timerEntryCategories = timerEntryCategoryRepository.findAllByOwner(username);
+        return timerEntryCategories.iterator().next();
     }
 
     private ResponseEntity<String> getTimerEntryCategoriesByTimerEntryId(String username, String password, Long timerEntryId) {
-        return restTemplate.withBasicAuth(username, password).getForEntity("/timer-entry-category/" + timerEntryId, String.class);
+        return restTemplate.withBasicAuth(username, password)
+                .getForEntity(
+                        "/timer-entry-category/" + timerEntryId,
+                        String.class
+                );
     }
 
     private TimerEntry createTimerEntry(String owner, Long timeTracked) {

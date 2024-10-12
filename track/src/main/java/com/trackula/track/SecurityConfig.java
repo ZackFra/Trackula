@@ -45,7 +45,8 @@ public class SecurityConfig {
         return http.authorizeHttpRequests(request -> request.requestMatchers(
                         "/category/**",
                                 "/timer-entry/**",
-                                "/timer-entry-category/**")
+                                "/timer-entry-category/**",
+                                "/user/**")
                         .authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)

@@ -1,10 +1,12 @@
 package com.trackula.track.repository;
 
+import com.trackula.track.model.TimerEntry;
 import com.trackula.track.model.TimerEntryCategory;
 import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface TimerEntryCategoryRepository extends CrudRepository<TimerEntryCategory, Long> {
@@ -18,4 +20,6 @@ public interface TimerEntryCategoryRepository extends CrudRepository<TimerEntryC
 
     boolean existsByCategoryIdAndTimerEntryId(Long categoryId, Long timerEntryId);
     Iterable<TimerEntryCategory> findAllByTimerEntryId(Long timerEntryId);
+    boolean existsByIdAndOwner(Long id, String owner);
+    Iterable<TimerEntryCategory> findAllByOwner(String owner);
 }

@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.StreamSupport;
 
 @RestController
@@ -55,21 +56,38 @@ public class TimerEntryCategoryController {
         return ResponseEntity.created(uri).build();
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{timerEntryId}")
     public ResponseEntity<List<TimerEntryCategory>> getTimerEntryCategoriesByTimerEntryId(@PathVariable Long timerEntryId, Principal principal) {
         boolean isTimerEntryInDatabase;
-        if(authService.isAdmin()) {
+        if (authService.isAdmin()) {
             isTimerEntryInDatabase = timerEntryRepository.existsById(timerEntryId);
         } else {
             isTimerEntryInDatabase = timerEntryRepository.existsByIdAndOwner(timerEntryId, principal.getName());
         }
 
-        if(!isTimerEntryInDatabase) {
+        if (!isTimerEntryInDatabase) {
             return ResponseEntity.notFound().build();
         }
 
         Iterable<TimerEntryCategory> timerEntryCategoriesIterable = timerEntryCategoryRepository.findAllByTimerEntryId(timerEntryId);
         List<TimerEntryCategory> timerEntryCategories = StreamSupport.stream(timerEntryCategoriesIterable.spliterator(), false).toList();
         return ResponseEntity.ok(timerEntryCategories);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteTimerEntryCategory(@PathVariable Long id, Principal principal) {
+        boolean isInDatabase = false;
+        if(authService.isAdmin()) {
+            isInDatabase = timerEntryCategoryRepository.existsById(id);
+        } else {
+            isInDatabase = timerEntryCategoryRepository.existsByIdAndOwner(id, principal.getName());
+        }
+
+        if(!isInDatabase) {
+            return ResponseEntity.notFound().build();
+        }
+
+        timerEntryCategoryRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }
