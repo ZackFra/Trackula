@@ -46,7 +46,8 @@ public class SecurityConfig {
                         "/category/**",
                                 "/timer-entry/**",
                                 "/timer-entry-category/**",
-                                "/user/**")
+                                "/user/**",
+                                "/h2-console/**")
                         .authenticated())
                 .httpBasic(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)

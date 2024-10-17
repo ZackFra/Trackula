@@ -55,13 +55,14 @@ public class UserController {
     @PreAuthorize("hasRole('ROLE_admin')")
     @GetMapping
     public ResponseEntity<List<GetUserResponse>> getAllUsers() {
-        Iterator<com.trackula.track.model.User> usersIterable = usersRepository.findAll().iterator();
+        Iterator<com.trackula.track.model.User> usersIterable = usersRepository.findAllWithAuthorities().iterator();
         List<GetUserResponse> users = new ArrayList<>();
         while(usersIterable.hasNext()) {
             com.trackula.track.model.User user = usersIterable.next();
             GetUserResponse userResponse = new GetUserResponse();
-            userResponse.setRole(user);
+            //userResponse.setRole(user);
         }
+        return ResponseEntity.internalServerError().build();
 
     }
 
