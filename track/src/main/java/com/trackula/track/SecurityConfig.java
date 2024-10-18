@@ -42,15 +42,13 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        return http.authorizeHttpRequests(request -> request.requestMatchers(
-                        "/category/**",
-                                "/timer-entry/**",
-                                "/timer-entry-category/**",
-                                "/user/**",
-                                "/h2-console/**")
-                        .authenticated())
+        return http.authorizeHttpRequests(request -> request
+                        .requestMatchers("/h2-console/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .headers(AbstractHttpConfigurer::disable)
                 .httpBasic(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/h2-console/**").disable())
                 .build();
     }
 

@@ -1,8 +1,10 @@
 package com.trackula.track.dto;
 
+import java.util.List;
+
 public class GetUserResponse {
     private String username;
-    private String role;
+    private List<String> roles;
 
     public String getUsername() {
         return username;
@@ -12,11 +14,11 @@ public class GetUserResponse {
         this.username = username;
     }
 
-    public String getRole() {
-        return role;
+    public List<String> getRoles() {
+        return roles;
     }
 
-    public void setRole(String role) {
-        this.role = role;
+    public void setRoles(List<String> roles) {
+        this.roles = roles;
     }
 }

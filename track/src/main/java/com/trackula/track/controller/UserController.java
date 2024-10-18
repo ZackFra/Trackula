@@ -2,6 +2,8 @@ package com.trackula.track.controller;
 
 import com.trackula.track.dto.CreateUserRequest;
 import com.trackula.track.dto.GetUserResponse;
+import com.trackula.track.model.Authorities;
+import com.trackula.track.repository.AuthoritiesRepository;
 import com.trackula.track.repository.UsersRepository;
 import com.trackula.track.service.AuthService;
 import org.apache.coyote.Response;
@@ -15,11 +17,13 @@ import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.web.bind.annotation.*;
 
+import javax.print.attribute.HashPrintJobAttributeSet;
 import java.net.URI;
 import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.sql.Array;
+import java.util.*;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @RestController
 @RequestMapping("/user")
@@ -29,12 +33,14 @@ public class UserController {
     private final PasswordEncoder passwordEncoder;
     private final AuthService authService;
     private final UsersRepository usersRepository;
+    private final AuthoritiesRepository authoritiesRepository;
 
-    public UserController(UserDetailsManager userDetailsManager, PasswordEncoder passwordEncoder, AuthService authService, UsersRepository usersRepository) {
+    public UserController(UserDetailsManager userDetailsManager, PasswordEncoder passwordEncoder, AuthService authService, UsersRepository usersRepository, AuthoritiesRepository authoritiesRepository) {
         this.userDetailsManager = userDetailsManager;
         this.passwordEncoder = passwordEncoder;
         this.authService = authService;
         this.usersRepository = usersRepository;
+        this.authoritiesRepository = authoritiesRepository;
     }
 
     @GetMapping("/{username}")
@@ -46,23 +52,46 @@ public class UserController {
             return ResponseEntity.notFound().build();
         }
 
+        Iterable<Authorities> authorities = authoritiesRepository.findAllByUsername(username);
+        ArrayList<String> roles = new ArrayList<>();
+        for(Authorities authority : authorities) {
+            roles.add(authority.authority());
+        }
+
         GetUserResponse response = new GetUserResponse();
         response.setUsername(foundUser.getUsername());
-        response.setRole(foundUser.getAuthorities().iterator().next().getAuthority());
+        response.setRoles(roles);
         return ResponseEntity.ok(response);
     }
 
     @PreAuthorize("hasRole('ROLE_admin')")
     @GetMapping
     public ResponseEntity<List<GetUserResponse>> getAllUsers() {
-        Iterator<com.trackula.track.model.User> usersIterable = usersRepository.findAllWithAuthorities().iterator();
-        List<GetUserResponse> users = new ArrayList<>();
-        while(usersIterable.hasNext()) {
-            com.trackula.track.model.User user = usersIterable.next();
-            GetUserResponse userResponse = new GetUserResponse();
-            //userResponse.setRole(user);
+        Iterable<com.trackula.track.model.User> usersIterable = usersRepository.findAll();
+        List<com.trackula.track.model.User> users = StreamSupport.stream(usersIterable.spliterator(), false)
+                .toList();
+        Map<String, GetUserResponse> userResponseByUsername = new HashMap<>();
+        for(com.trackula.track.model.User user : users) {
+            GetUserResponse response = new GetUserResponse();
+            response.setUsername(user.username());
+            userResponseByUsername.put(user.username(), response);
         }
-        return ResponseEntity.internalServerError().build();
+        Iterable<Authorities> authoritiesIterable = authoritiesRepository.findAllByUsernames(userResponseByUsername.keySet());
+        List<Authorities> authorities = StreamSupport.stream(authoritiesIterable.spliterator(), false)
+                .toList();
+        for(Authorities authority : authorities) {
+            GetUserResponse response = userResponseByUsername.get(authority.username());
+            List<String> roles = response.getRoles();
+            if(roles == null) {
+                roles = new ArrayList<>();
+            }
+            roles.add(authority.authority());
+            response.setRoles(roles);
+        }
+
+        ArrayList<GetUserResponse> responses = new ArrayList<>(userResponseByUsername.values());
+
+        return ResponseEntity.ok(responses);
 
     }
 
