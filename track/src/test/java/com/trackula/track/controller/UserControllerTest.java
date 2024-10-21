@@ -73,7 +73,7 @@ public class UserControllerTest {
             );
 
             assertThat(userDetails.getUsername()).isEqualTo("testuser");
-            assertThat(userDetails.getRole()).isEqualTo("ROLE_user");
+            assertThat(userDetails.getRoles().get(0)).isEqualTo("ROLE_user");
     }
 
     @Test
@@ -97,7 +97,7 @@ public class UserControllerTest {
         );
 
         assertThat(userDetails.getUsername()).isEqualTo("testuser");
-        assertThat(userDetails.getRole()).isEqualTo("ROLE_user");
+        assertThat(userDetails.getRoles().get(0)).isEqualTo("ROLE_user");
     }
 
     @Test
@@ -109,7 +109,7 @@ public class UserControllerTest {
                 GetUserResponse.class
         );
         assertThat(userResponse.getUsername()).isEqualTo(TEST_USER_USERNAME);
-        assertThat(userResponse.getRole()).isEqualTo("ROLE_user");
+        assertThat(userResponse.getRoles().get(0)).isEqualTo("ROLE_user");
     }
 
     @Test
@@ -121,7 +121,7 @@ public class UserControllerTest {
                 GetUserResponse.class
         );
         assertThat(userResponse.getUsername()).isEqualTo(TEST_ADMIN_USERNAME);
-        assertThat(userResponse.getRole()).isEqualTo("ROLE_admin");
+        assertThat(userResponse.getRoles().get(0)).isEqualTo("ROLE_admin");
     }
 
     @Test
@@ -133,7 +133,8 @@ public class UserControllerTest {
                 GetUserResponse.class
         );
         assertThat(userResponse.getUsername()).isEqualTo(TEST_USER_USERNAME);
-        assertThat(userResponse.getRole()).isEqualTo("ROLE_user");
+
+        assertThat(userResponse.getRoles().get(0)).isEqualTo("ROLE_user");
     }
 
     @Test

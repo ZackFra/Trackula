@@ -1,7 +1,6 @@
 package com.trackula.track.repository;
 
 import com.trackula.track.model.Category;
-import com.trackula.track.model.TimerEntry;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;

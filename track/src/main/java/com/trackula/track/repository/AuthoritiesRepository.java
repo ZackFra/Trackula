@@ -4,8 +4,10 @@ import com.trackula.track.model.Authorities;
 import org.springframework.data.jdbc.repository.query.Query;
 import org.springframework.data.repository.CrudRepository;
 
-public interface AuthoritiesRepository extends CrudRepository<String, Authorities> {
+import java.util.List;
+
+public interface AuthoritiesRepository extends CrudRepository<Authorities, Long> {
     @Query("SELECT * FROM authorities WHERE username IN :usernames")
-    Iterable<Authorities> findAllByUsernames(Iterable<String> usernames);
+    Iterable<Authorities> findAllByUsernames(List<String> usernames);
     Iterable<Authorities> findAllByUsername(String username);
 }

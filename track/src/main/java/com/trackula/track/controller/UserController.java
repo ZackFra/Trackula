@@ -6,23 +6,21 @@ import com.trackula.track.model.Authorities;
 import com.trackula.track.repository.AuthoritiesRepository;
 import com.trackula.track.repository.UsersRepository;
 import com.trackula.track.service.AuthService;
-import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
 import org.springframework.web.bind.annotation.*;
 
-import javax.print.attribute.HashPrintJobAttributeSet;
 import java.net.URI;
 import java.security.Principal;
-import java.sql.Array;
-import java.util.*;
-import java.util.stream.Stream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.StreamSupport;
 
 @RestController
@@ -76,7 +74,7 @@ public class UserController {
             response.setUsername(user.username());
             userResponseByUsername.put(user.username(), response);
         }
-        Iterable<Authorities> authoritiesIterable = authoritiesRepository.findAllByUsernames(userResponseByUsername.keySet());
+        Iterable<Authorities> authoritiesIterable = authoritiesRepository.findAllByUsernames(userResponseByUsername.keySet().stream().toList());
         List<Authorities> authorities = StreamSupport.stream(authoritiesIterable.spliterator(), false)
                 .toList();
         for(Authorities authority : authorities) {
