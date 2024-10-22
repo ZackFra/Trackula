@@ -33,12 +33,12 @@ public class TimerEntryController {
     }
 
     @GetMapping
-    public ResponseEntity<List<TimerEntry>> getAllTimerEntries(Principal principal) {
+    public ResponseEntity<List<TimerEntry>> getAllTimerEntries(@CurrentOwner String owner) {
         Iterable<TimerEntry> timerEntriesIterable;
         if(authService.isAdmin()) {
             timerEntriesIterable = timerEntryRepository.findAll();
         } else {
-            timerEntriesIterable = timerEntryRepository.findAllByOwner(principal.getName());
+            timerEntriesIterable = timerEntryRepository.findAllByOwner(owner);
         }
         List<TimerEntry> timerEntries = StreamSupport.stream(timerEntriesIterable.spliterator(), false)
             .toList();
@@ -46,12 +46,12 @@ public class TimerEntryController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<TimerEntry> getTimerEntryById(@PathVariable Long id, Principal principal) {
+    public ResponseEntity<TimerEntry> getTimerEntryById(@PathVariable Long id, @CurrentOwner String owner) {
         Optional<TimerEntry> timerEntryOptional;
         if(authService.isAdmin()) {
             timerEntryOptional = timerEntryRepository.findById(id);
         } else {
-            timerEntryOptional = timerEntryRepository.findByIdAndOwner(id, principal.getName());
+            timerEntryOptional = timerEntryRepository.findByIdAndOwner(id, owner);
         }
         if(timerEntryOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
@@ -61,10 +61,10 @@ public class TimerEntryController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createTimerEntry(@RequestBody CreateTimerEntryRequest createTimerEntryRequest, Principal principal) {
+    public ResponseEntity<Void> createTimerEntry(@RequestBody CreateTimerEntryRequest createTimerEntryRequest, @CurrentOwner String owner) {
         TimerEntry newTimerEntry = new TimerEntry(
                 null,
-                principal.getName(),
+                owner,
                 createTimerEntryRequest.getTimeTracked()
         );
         TimerEntry createdTimerEntry = timerEntryJdbcRepository.save(newTimerEntry);
@@ -109,12 +109,12 @@ public class TimerEntryController {
 
     @DeleteMapping("/{id}")
     @Transactional
-    public ResponseEntity<Void> deleteTimerEntry(@PathVariable Long id, Principal principal) {
+    public ResponseEntity<Void> deleteTimerEntry(@PathVariable Long id, @CurrentOwner String owner) {
         boolean isInDatabase;
         if(authService.isAdmin()) {
             isInDatabase = timerEntryRepository.existsById(id);
         } else {
-            isInDatabase = timerEntryRepository.existsByIdAndOwner(id, principal.getName());
+            isInDatabase = timerEntryRepository.existsByIdAndOwner(id, owner);
         }
         if(!isInDatabase) {
             return ResponseEntity.notFound().build();

@@ -9,6 +9,7 @@ import com.trackula.track.service.AuthService;
 import org.apache.coyote.Response;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
@@ -34,7 +35,7 @@ public class TimerEntryCategoryController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> createTimerEntryCategory(@RequestBody CreateTimerEntryCategoryRequest createTimerEntryCategoryRequest, Principal principal) {
+    public ResponseEntity<Void> createTimerEntryCategory(@RequestBody CreateTimerEntryCategoryRequest createTimerEntryCategoryRequest, @CurrentOwner String owner) {
         Long categoryId = createTimerEntryCategoryRequest.getCategoryId();
         Long timerEntryId = createTimerEntryCategoryRequest.getTimerEntryId();
         if(categoryId == null || timerEntryId == null) {
@@ -49,7 +50,7 @@ public class TimerEntryCategoryController {
                 null,
                 createTimerEntryCategoryRequest.getTimerEntryId(),
                 createTimerEntryCategoryRequest.getCategoryId(),
-                principal.getName()
+                owner
         );
         TimerEntryCategory createdTimerEntryCategory = timerEntryCategoryJdbcRepository.save(newTimerEntryCategory);
         URI uri = URI.create("/timer-entry-category/" + createdTimerEntryCategory.id());
@@ -57,12 +58,12 @@ public class TimerEntryCategoryController {
     }
 
     @GetMapping("/{timerEntryId}")
-    public ResponseEntity<List<TimerEntryCategory>> getTimerEntryCategoriesByTimerEntryId(@PathVariable Long timerEntryId, Principal principal) {
+    public ResponseEntity<List<TimerEntryCategory>> getTimerEntryCategoriesByTimerEntryId(@PathVariable Long timerEntryId, @CurrentOwner String owner) {
         boolean isTimerEntryInDatabase;
         if (authService.isAdmin()) {
             isTimerEntryInDatabase = timerEntryRepository.existsById(timerEntryId);
         } else {
-            isTimerEntryInDatabase = timerEntryRepository.existsByIdAndOwner(timerEntryId, principal.getName());
+            isTimerEntryInDatabase = timerEntryRepository.existsByIdAndOwner(timerEntryId, owner);
         }
 
         if (!isTimerEntryInDatabase) {
@@ -75,12 +76,12 @@ public class TimerEntryCategoryController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteTimerEntryCategory(@PathVariable Long id, Principal principal) {
+    public ResponseEntity<Void> deleteTimerEntryCategory(@PathVariable Long id, @CurrentOwner String owner) {
         boolean isInDatabase = false;
         if(authService.isAdmin()) {
             isInDatabase = timerEntryCategoryRepository.existsById(id);
         } else {
-            isInDatabase = timerEntryCategoryRepository.existsByIdAndOwner(id, principal.getName());
+            isInDatabase = timerEntryCategoryRepository.existsByIdAndOwner(id, owner);
         }
 
         if(!isInDatabase) {

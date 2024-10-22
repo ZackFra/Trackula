@@ -53,7 +53,7 @@ public class CategoryController {
 
     @PreAuthorize("hasRole('ROLE_admin')")
     @PostMapping
-    public ResponseEntity<Void> createCategory(@RequestBody CreateCategoryRequest createCategoryRequest, Principal principal) {
+    public ResponseEntity<Void> createCategory(@RequestBody CreateCategoryRequest createCategoryRequest, @CurrentOwner String owner) {
         if(createCategoryRequest.getName() == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
@@ -64,7 +64,7 @@ public class CategoryController {
         Category newCategory = categoryJdbcRepository.save(new Category(
                 null,
                 createCategoryRequest.getName(),
-                principal.getName()
+                owner
         ));
         URI uri = URI.create("/category/" + newCategory.id());
         return ResponseEntity.created(uri).build();
@@ -72,7 +72,7 @@ public class CategoryController {
 
     @PreAuthorize("hasRole('ROLE_admin')")
     @PutMapping("/{id}")
-    public ResponseEntity<Void> updateCategory(@PathVariable Long id, @RequestBody UpdateCategoryRequest updateCategoryRequest, Principal principal) {
+    public ResponseEntity<Void> updateCategory(@PathVariable Long id, @RequestBody UpdateCategoryRequest updateCategoryRequest) {
         Optional<Category> existingCategoryOptional = categoryRepository.findById(id);
         if(existingCategoryOptional.isEmpty()) {
             return ResponseEntity.notFound().build();
