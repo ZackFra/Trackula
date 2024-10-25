@@ -16,6 +16,7 @@ public class TimerEntryJdbcRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+
     public TimerEntry save(TimerEntry timerEntry) {
         String sql = "INSERT INTO timer_entry(owner, time_tracked) VALUES(?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();

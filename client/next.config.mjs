@@ -3,7 +3,7 @@ const nextConfig = {
     async rewrites() {
         return [
             {
-                source: '/api/:path*',
+                source: '/spring/:path*',
                 destination: 'http://localhost:8080/:path*' // Proxy to Backend
             }
         ]

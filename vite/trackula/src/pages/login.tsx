@@ -1,11 +1,11 @@
 import { Form, FormItem, FormControl, FormField, FormLabel } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useForm } from 'react-hook-form'
+import { ControllerRenderProps, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from "@hookform/resolvers/zod"
 
-import { login } from '@/api/auth'
+import { login } from '@/api'
 
 const formSchema = z.object({
     username: z.string().min(5, { message: 'Username must be at least 5 characters long' }),
@@ -15,7 +15,7 @@ const formSchema = z.object({
 type ItemProps = {
     label: string
     placeholder: string
-    field: any
+    field: ControllerRenderProps<Zod.infer<typeof formSchema>>
     description: string,
     type?: string
 }

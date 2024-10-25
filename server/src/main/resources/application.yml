@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: track
+  h2:
+    console:
+      enabled: true
+  sql:
+    init:
+      mode: always
+logging:
+  level:
+    root: INFO
+server:
+  error:
+    include-message: always
+    include-binding-errors: always
