@@ -7,6 +7,9 @@ spring:
   sql:
     init:
       mode: always
+  security:
+    filter:
+      order: 10
 logging:
   level:
     root: INFO

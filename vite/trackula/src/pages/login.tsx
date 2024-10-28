@@ -5,7 +5,8 @@ import { ControllerRenderProps, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from "@hookform/resolvers/zod"
 
-import { login } from '@/api'
+import { login } from '@/api/auth'
+import { getAllTimerEntries } from '@/api/timer-entries'
 
 const formSchema = z.object({
     username: z.string().min(5, { message: 'Username must be at least 5 characters long' }),
@@ -41,7 +42,11 @@ const LoginForm = () => {
     })
     const onSubmit = async (data : z.infer<typeof formSchema>) => {
         const response = await login(data)
-        console.log(response)
+        if(response.ok) {
+            const timerEntryResp = await getAllTimerEntries()
+            const timerEntries = await timerEntryResp.json()
+            console.log(timerEntries)
+        }
     }
     return (
         <Form {...form}>
