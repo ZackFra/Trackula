@@ -8,11 +8,15 @@ spring:
     init:
       mode: always
   security:
-    filter:
-      order: 10
+    oauth:
+      resourceserver:
+        jwt:
+          public-key-location: classpath:public.key
 logging:
+  file:
+    name: trackula.log
   level:
-    root: INFO
+    org.springframework.security: TRACE
 server:
   error:
     include-message: always

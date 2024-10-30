@@ -1,5 +1,6 @@
 package com.trackula.track.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.trackula.track.model.Category;
 import com.trackula.track.model.TimerEntry;
 import com.trackula.track.model.TimerEntryCategory;
@@ -32,4 +33,5 @@ public class TestDataUtils {
     public static TestRestTemplate restTemplateWithBasicAuthForUser(TestRestTemplate restTemplate) {
         return restTemplate.withBasicAuth(TEST_USER_USERNAME, TEST_USER_PASSWORD);
     }
+
 }

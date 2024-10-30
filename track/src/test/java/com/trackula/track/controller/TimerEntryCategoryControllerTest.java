@@ -14,13 +14,18 @@ import com.trackula.track.repository.TimerEntryJdbcRepository;
 import com.trackula.track.repository.TimerEntryRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+
 
 import java.util.List;
 import java.util.Optional;
@@ -28,8 +33,12 @@ import java.util.Optional;
 import static com.trackula.track.controller.TestDataUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.fail;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(classes= TrackApplication.class, webEnvironment= SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
+@WithMockUser
 public class TimerEntryCategoryControllerTest {
     @Autowired
     CategoryRepository categoryRepository;
@@ -49,7 +58,11 @@ public class TimerEntryCategoryControllerTest {
     @Autowired
     ObjectMapper objectMapper;
 
+    @Autowired
+    private MockMvc mvc;
+
     @Test
+    @WithMockUser(username=TEST_ADMIN_USERNAME)
     void ensureAdminCannotCreateConflictingTimerEntryCategory() {
         Category category = getCategory();
         TimerEntry timerEntry = getTimerEntry(TEST_ADMIN_USERNAME);

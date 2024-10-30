@@ -1,5 +1,6 @@
 package com.trackula.track.controller;
 
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.trackula.track.TrackApplication;
@@ -15,6 +16,7 @@ import org.apache.coyote.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.data.relational.core.sql.Update;
@@ -24,6 +26,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.annotation.DirtiesContext;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.web.servlet.MvcResult;
 
 
 import java.net.URI;
@@ -33,8 +38,13 @@ import java.util.Optional;
 import static com.trackula.track.controller.TestDataUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Fail.fail;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(classes= TrackApplication.class, webEnvironment= SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
 public class CategoryControllerTest {
 
     @Autowired
@@ -49,51 +59,58 @@ public class CategoryControllerTest {
     @Autowired
     PasswordEncoder passwordEncoder;
 
-    @Test
-    void printOutEncryptedPassword() {
-        System.out.println(passwordEncoder.encode("admin-password"));
-    }
+    @Autowired
+    MockMvc mvc;
 
     @Test
-    void ensureGetRequestReturnsACategoryWhenExists() {
+    @WithMockUser(username=TEST_ADMIN_USERNAME)
+    void ensureAdminCanGetCategory() throws Exception {
         Category category = getTestCategory();
-        ResponseEntity<String> response = getCategoryById(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, category.id());
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        DocumentContext documentContext = JsonPath.parse(response.getBody());
-        Number id = documentContext.read("$.id");
-        assertThat(id).isNotNull();
-        String name = documentContext.read("$.name");
-        assertThat(name).isEqualTo("test");
+        this.mvc.perform(get("/category/" + category.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value(category.name()));
     }
 
     @Test
-    void ensureGetRequests404sWhenCategoryDoesNotExist() {
-        ResponseEntity<String> response = getCategoryById(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, 999L);
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody()).isNull();
+    @WithMockUser(username=TEST_ADMIN_USERNAME)
+    void ensureGetRequestReturnsACategoryWhenExists() throws Exception {
+        Category category = getTestCategory();
+        this.mvc.perform(get("/category/" + category.id()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.name").value("test"));
     }
 
     @Test
+    @WithMockUser(username=TEST_ADMIN_USERNAME)
+    void ensureGetRequests404sWhenCategoryDoesNotExist() throws Exception {
+        MvcResult result = mvc.perform(get("/category/999"))
+                .andExpect(status().isNotFound())
+                .andReturn();
+        assertThat(result.getResponse().getContentAsString()).isBlank();
+    }
+
+    @Test
+    @WithMockUser(username=TEST_ADMIN_USERNAME)
     @DirtiesContext
     void ensurePostRequestCreatesNewCategory() throws Exception {
         CreateCategoryRequest createCategoryRequest = new CreateCategoryRequest();
         createCategoryRequest.setName("test2");
-        ResponseEntity<Void> postResponse = postCategory(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD, createCategoryRequest);
-        assertThat(postResponse.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        URI location = postResponse.getHeaders().getLocation();
+        String body = objectMapper.writeValueAsString(createCategoryRequest);
+        MvcResult postResult = mvc.perform(post("/category")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body)
+                )
+                .andExpect(status().isCreated())
+                .andReturn();
+        String location = postResult.getResponse().getHeader("Location");
         assertThat(location).isNotNull();
         Optional<Category> categoryOptional = categoryRepository.findByName("test2");
         assertThat(categoryOptional.isPresent()).isTrue();
 
-        ResponseEntity<String> getResponse = restTemplate
-                .withBasicAuth(TEST_ADMIN_USERNAME, TEST_ADMIN_PASSWORD)
-                .getForEntity(location.getPath(), String.class);
-        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        Category retrievedCategory = objectMapper.readValue(
-                getResponse.getBody(),
-                Category.class
-        );
-        assertThat(retrievedCategory.id()).isNotNull();
+        mvc.perform(get(location))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNotEmpty());
     }
 
     @Test

@@ -54,11 +54,11 @@ public class CategoryController {
     @PreAuthorize("hasRole('ROLE_admin')")
     @PostMapping
     public ResponseEntity<Void> createCategory(@RequestBody CreateCategoryRequest createCategoryRequest, @CurrentOwner String owner) {
-        if(createCategoryRequest.getName() == null) {
+        if (createCategoryRequest.getName() == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         boolean isInDatabaseAlready = categoryRepository.existsByName(createCategoryRequest.getName());
-        if(isInDatabaseAlready) {
+        if (isInDatabaseAlready) {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
         Category newCategory = categoryJdbcRepository.save(new Category(
